@@ -137,7 +137,7 @@ if remoteManXML and remoteManXML[1].elem == "PoBVersion" then
 				if not remoteSources[node.attrib.part] then
 					remoteSources[node.attrib.part] = { }
 				end
-				remoteSources[node.attrib.part][node.attrib.platform or "any"] = node.attrib.url
+				remoteSources[node.attrib.part]["any"] = node.attrib.url
 			elseif node.elem == "File" then
 				-- skip win32-specific executables and libraries, font files, and UpdateCheck.lua
 				if not (node.attrib.runtime == "win32" or endswith(node.attrib.name, ".tga") or endswith(node.attrib.name, ".tgf") or node.attrib.name == "UpdateCheck.lua") then
