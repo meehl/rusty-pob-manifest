@@ -104,10 +104,13 @@ if localManXML and localManXML[1].elem == "PoBVersion" then
 					localSource = node.attrib.url
 				end
 			elseif node.elem == "File" then
-				local fullPath
-				node.attrib.name = node.attrib.name:gsub("{space}", " ")
-				fullPath = scriptPath .. "/" .. node.attrib.name
-				localFiles[node.attrib.name] = { sha1 = node.attrib.sha1, part = node.attrib.part, platform = node.attrib.platform, fullPath = fullPath }
+				-- skip win32-specific executables and libraries, font files, and UpdateCheck.lua
+				if not (node.attrib.runtime == "win32" or endswith(node.attrib.name, ".tga") or endswith(node.attrib.name, ".tgf") or node.attrib.name == "UpdateCheck.lua") then
+					local fullPath
+					node.attrib.name = node.attrib.name:gsub("{space}", " ")
+					fullPath = scriptPath .. "/" .. node.attrib.name
+					localFiles[node.attrib.name] = { sha1 = node.attrib.sha1, part = node.attrib.part, platform = node.attrib.platform, fullPath = fullPath }
+				end
 			end
 		end
 	end
@@ -249,7 +252,7 @@ local deleteFiles = { }
 for name, data in pairs(localFiles) do
 	data.name = name
 	local unSanitizedName = name:gsub(" ", "{space}")
-	if not remoteFiles[name] and not remoteFiles[unSanitizedName] then
+	if not remoteFiles[name] and not remoteFiles[unSanitizedName] and not unSanitizedName == "UpdateCheck.lua" then
 		table.insert(deleteFiles, data)
 	end
 end
