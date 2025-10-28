@@ -123,6 +123,13 @@ if not localVer or not localSource or not localBranch or not next(localFiles) th
 end
 localSource = localSource:gsub("{branch}", localBranch)
 
+local gameVersion
+if localSource:find("-PoE2") then
+	gameVersion = 2
+else
+	gameVersion = 1
+end
+
 -- Download and process remote manifest
 local remoteVer
 local remoteFiles = { }
@@ -214,7 +221,8 @@ local rustyPobVersionFile = io.open(scriptPath.."/rpob.version", "r")
 if rustyPobVersionFile then
 	local rustyPobVersion = rustyPobVersionFile:read("a")
 
-	local compatText, errMsg = downloadFileText(rustyRepo, "Compatibility.lua")
+	local compatFile = "Compatibility_pob" .. gameVersion .. ".lua"
+	local compatText, errMsg = downloadFileText(rustyRepo, compatFile)
 	if not compatText then
 		ConPrintf("Update check failed: couldn't download version compatibility info")
 		return nil, "Couldn't download version compatibility info.\nReason: "..errMsg.."\nCheck your internet connectivity.\nIf you are using a proxy, specify it in Options."
