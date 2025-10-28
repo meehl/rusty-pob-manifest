@@ -86,6 +86,8 @@ ConPrintf("Checking for update...")
 -- Use built-in helpers to obtain absolute paths without spawning a shell.
 local scriptPath = (GetScriptPath and GetScriptPath()) or "."
 
+local rustyRepo = "https://raw.githubusercontent.com/meehl/rusty-pob-manifest/main/"
+
 -- Load and process local manifest
 local localVer
 local localPlatform, localBranch
@@ -105,7 +107,7 @@ if localManXML and localManXML[1].elem == "PoBVersion" then
 				end
 			elseif node.elem == "File" then
 				-- skip win32-specific executables and libraries, font files, and UpdateCheck.lua
-				if not (node.attrib.runtime == "win32" or endswith(node.attrib.name, ".tga") or endswith(node.attrib.name, ".tgf") or node.attrib.name == "UpdateCheck.lua") then
+				if not (node.attrib.runtime == "win32" or endswith(node.attrib.name, ".tga") or endswith(node.attrib.name, ".tgf")) then
 					local fullPath
 					node.attrib.name = node.attrib.name:gsub("{space}", " ")
 					fullPath = scriptPath .. "/" .. node.attrib.name
@@ -143,14 +145,29 @@ if remoteManXML and remoteManXML[1].elem == "PoBVersion" then
 				remoteSources[node.attrib.part]["any"] = node.attrib.url
 			elseif node.elem == "File" then
 				-- skip win32-specific executables and libraries, font files, and UpdateCheck.lua
-				if not (node.attrib.runtime == "win32" or endswith(node.attrib.name, ".tga") or endswith(node.attrib.name, ".tgf") or node.attrib.name == "UpdateCheck.lua") then
+				if not (node.attrib.runtime == "win32" or endswith(node.attrib.name, ".tga") or endswith(node.attrib.name, ".tgf")) then
 					local fullPath = scriptPath .. "/" .. node.attrib.name
+					-- special handling for custom UpdateCheck
+					if node.attrib.name == "UpdateCheck.lua" then
+						node.attrib.part = "rusty"
+						local hash = downloadFileText(rustyRepo, "UpdateCheck.lua.sha1")
+						if hash == nil then
+							node.attrib.sha1 = "SKIP"
+						else
+							-- extract only the checksum part and ignore filename
+							node.attrib.sha1 = hash:match("^([%x]+)%s")
+						end
+					end
 					remoteFiles[node.attrib.name] = { sha1 = node.attrib.sha1, part = node.attrib.part, platform = node.attrib.platform, fullPath = fullPath }
 				end
 			end
 		end
 	end
 end
+
+-- Add rusty repo as addditional source for the custom UpdateCheck
+remoteSources["rusty"]["any"] = rustyRepo
+
 if not remoteVer or not next(remoteSources) or not next(remoteFiles) then
 	ConPrintf("Update check failed: invalid remote manifest")
 	return nil, "Invalid remote manifest"
@@ -197,7 +214,7 @@ local rustyPobVersionFile = io.open(scriptPath.."/rpob.version", "r")
 if rustyPobVersionFile then
 	local rustyPobVersion = rustyPobVersionFile:read("a")
 
-	local compatText, errMsg = downloadFileText("https://raw.githubusercontent.com/meehl/rusty-pob-manifest/main/", "Compatibility.lua")
+	local compatText, errMsg = downloadFileText(rustyRepo, "Compatibility.lua")
 	if not compatText then
 		ConPrintf("Update check failed: couldn't download version compatibility info")
 		return nil, "Couldn't download version compatibility info.\nReason: "..errMsg.."\nCheck your internet connectivity.\nIf you are using a proxy, specify it in Options."
@@ -241,7 +258,7 @@ for name, data in pairs(remoteFiles) do
 		else
 			local content = file:read("*a")
 			file:close()
-			if data.sha1 ~= sha1(content) and data.sha1 ~= sha1(content:gsub("\n", "\r\n")) then
+			if data.sha1 ~= sha1(content) and data.sha1 ~= sha1(content:gsub("\n", "\r\n")) and data.sha1 ~= "SKIP" then
 				ConPrintf("Warning: Integrity check on '%s' failed, it will be replaced", data.name)
 				table.insert(updateFiles, data)
 			end
