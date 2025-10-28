@@ -173,6 +173,7 @@ if remoteManXML and remoteManXML[1].elem == "PoBVersion" then
 end
 
 -- Add rusty repo as addditional source for the custom UpdateCheck
+remoteSources["rusty"] = { }
 remoteSources["rusty"]["any"] = rustyRepo
 
 if not remoteVer or not next(remoteSources) or not next(remoteFiles) then
