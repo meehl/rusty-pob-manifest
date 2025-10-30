@@ -4,7 +4,7 @@
 -- Module: Update Check
 -- Checks for updates
 --
-local connectionProtocol, proxyURL = ...
+local connectionProtocol, proxyURL, noSSL = ...
 
 local xml = require("xml")
 local sha1 = require("sha1")
@@ -27,6 +27,11 @@ local function downloadFileText(source, file)
 		end
 		if proxyURL then
 			easy:setopt(curl.OPT_PROXY, proxyURL)
+		end
+		if noSSL then
+			easy:setopt(curl.OPT_SSL_VERIFYPEER, 0)
+			easy:setopt(curl.OPT_SSL_VERIFYHOST, 0)
+			ConPrintf("SSL verification disabled")
 		end
 		easy:setopt_writefunction(function(data)
 			text = text..data
@@ -60,6 +65,11 @@ local function downloadFile(source, file, outName)
 		if proxyURL then
 			easy:setopt(curl.OPT_PROXY, proxyURL)
 		end
+		if noSSL then
+			easy:setopt(curl.OPT_SSL_VERIFYPEER, 0)
+			easy:setopt(curl.OPT_SSL_VERIFYHOST, 0)
+			ConPrintf("SSL verification disabled")
+		end
 		local file = io.open(outName, "w+b")
 		easy:setopt_writefunction(file)
 		local _, error = easy:perform()
@@ -84,7 +94,9 @@ end
 ConPrintf("Checking for update...")
 
 -- Use built-in helpers to obtain absolute paths without spawning a shell.
-local scriptPath = (GetScriptPath and GetScriptPath()) or "."
+local scriptPath, scriptFallback = GetScriptPath()
+scriptPath = scriptPath or scriptFallback or "."
+
 
 local rustyRepo = "https://raw.githubusercontent.com/meehl/rusty-pob-manifest/main/"
 
@@ -242,8 +254,9 @@ if rustyPobVersionFile then
 				return nil, errMsg
 		else
 				if not compatResult then
-						ConPrintf("New update available but not supported by Rusty Path of Building yet.")
-						return "none"
+						ConPrintf("New PoB update available but it is not supported by your current version of Rusty PoB")
+						return nil, "New update available but it is not supported\nby your current version of Rusty PoB.\nMinimum required version: "..minRequiredRustyPobVersion
+
 				end
 		end
 	end
