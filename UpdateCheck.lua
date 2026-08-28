@@ -229,40 +229,42 @@ local function isVersionCompatible(version1, version2)
     return false
 end
 
--- Check if remote PoB version is compatible with Rusty Path of Building 
-local rustyPobVersionFile = io.open(scriptPath.."/rpob.version", "r")
-if rustyPobVersionFile then
-	local rustyPobVersion = rustyPobVersionFile:read("a")
+-- Check if remote PoB version is compatible with Rusty Path of Building for non-beta versions
+if localBranch ~= "beta" then
+	local rustyPobVersionFile = io.open(scriptPath.."/rpob.version", "r")
+	if rustyPobVersionFile then
+		local rustyPobVersion = rustyPobVersionFile:read("a")
 
-	local compatFile = "Compatibility_pob" .. gameVersion .. ".lua"
-	local compatText, errMsg = downloadFileText(rustyRepo, compatFile)
-	if not compatText then
-		ConPrintf("Update check failed: couldn't download version compatibility info")
-		return nil, "Couldn't download version compatibility info.\nReason: "..errMsg.."\nCheck your internet connectivity.\nIf you are using a proxy, specify it in Options."
-	else
-		local compatTable = loadstring(compatText)()
-		local minRequiredRustyPobVersion = compatTable[remoteVer]
-
-		if minRequiredRustyPobVersion == nil then
-				ConPrintf("No compatibility info found")
-				return "none"
-		end
-
-		local compatResult, errMsg = isVersionCompatible(rustyPobVersion, minRequiredRustyPobVersion)
-		if compatResult == nil then
-				ConPrintf("Update check failed: Invalid version format")
-				return nil, errMsg
+		local compatFile = "Compatibility_pob" .. gameVersion .. ".lua"
+		local compatText, errMsg = downloadFileText(rustyRepo, compatFile)
+		if not compatText then
+			ConPrintf("Update check failed: couldn't download version compatibility info")
+			return nil, "Couldn't download version compatibility info.\nReason: "..errMsg.."\nCheck your internet connectivity.\nIf you are using a proxy, specify it in Options."
 		else
-				if not compatResult then
-						ConPrintf("New PoB update available but it is not supported by your current version of Rusty PoB")
-						return nil, "New update available but it is not supported\nby your current version of Rusty PoB.\nMinimum required version: "..minRequiredRustyPobVersion
+			local compatTable = loadstring(compatText)()
+			local minRequiredRustyPobVersion = compatTable[remoteVer]
 
-				end
+			if minRequiredRustyPobVersion == nil then
+					ConPrintf("No compatibility info found")
+					return "none"
+			end
+
+			local compatResult, errMsg = isVersionCompatible(rustyPobVersion, minRequiredRustyPobVersion)
+			if compatResult == nil then
+					ConPrintf("Update check failed: Invalid version format")
+					return nil, errMsg
+			else
+					if not compatResult then
+							ConPrintf("New PoB update available but it is not supported by your current version of Rusty PoB")
+							return nil, "New update available but it is not supported\nby your current version of Rusty PoB.\nMinimum required version: "..minRequiredRustyPobVersion
+
+					end
+			end
 		end
+	else
+		ConPrintf("Update check failed: RPoB Version file missing")
+		return nil, "Rusty Path of Building version file is missing."
 	end
-else
-	ConPrintf("Update check failed: RPoB Version file missing")
-	return nil, "Rusty Path of Building version file is missing."
 end
 
 -- Build lists of files to be updated or deleted
